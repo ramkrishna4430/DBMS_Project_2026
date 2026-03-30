@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        // Early auth check to prevent page flash
+        const preLoadData = JSON.parse(sessionStorage.getItem('logichain_user') || 'null');
+        if (!preLoadData || preLoadData.role !== 'customer') {
+            window.location.href = 'login.html';
+        }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Portal | LogiChain</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1E3A8A; 
+            --secondary: #3B82F6; 
+            --accent: #10B981; 
+            --danger: #EF4444; 
+            --warning: #F59E0B;
+            --bg-light: #F3F4F6;
+            --text-dark: #1F2937;
+            --card-bg: #FFFFFF;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 260px;
+            background: linear-gradient(180deg, #0f172a 0%, #1e3a5f 100%);
+            color: white;
+            padding: 25px 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            text-align: center;
+            margin-bottom: 10px;
+            padding: 0 20px;
+        }
+
+        .sidebar-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .user-info {
+            text-align: center;
+            padding: 15px 20px;
+            margin: 0 15px 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .user-info .user-name {
+            font-weight: 600;
+            font-size: 1rem;
+            color: #fff;
+        }
+
+        .user-info .user-role {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-top: 3px;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            padding: 14px 24px;
+            text-align: left;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 500;
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            background: rgba(59, 130, 246, 0.1);
+            color: white;
+            border-left: 3px solid var(--accent);
+        }
+
+        .nav-btn .nav-icon {
+            margin-right: 10px;
+            font-size: 1.1rem;
+        }
+
+        .cart-badge {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            display: none;
+        }
+
+        .nav-btn.logout-btn {
+            margin-top: auto;
+            color: #ef4444;
+            border-left: none;
+        }
+
+        .nav-btn.logout-btn:hover {
+            background: rgba(239, 68, 68, 0.1);
+            border-left: none;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex: 1;
+            padding: 35px 40px;
+            overflow-y: auto;
+            margin-left: 260px;
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            margin-bottom: 5px;
+            color: var(--primary);
+            font-size: 1.8rem;
+        }
+
+        .page-desc {
+            margin-bottom: 25px;
+            color: #6B7280;
+            border-bottom: 2px solid #E5E7EB;
+            padding-bottom: 15px;
+            font-size: 0.95rem;
+        }
+
+        /* FPT Documentation Badges */
+        .fpt-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .fpt-function {
+            background: #DBEAFE;
+            color: #1E40AF;
+            border: 1px solid #93C5FD;
+        }
+
+        .fpt-procedure {
+            background: #D1FAE5;
+            color: #065F46;
+            border: 1px solid #6EE7B7;
+        }
+
+        .fpt-trigger {
+            background: #FEE2E2;
+            color: #991B1B;
+            border: 1px solid #FCA5A5;
+        }
+
+        .fpt-info-box {
+            padding: 14px 18px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .fpt-info-box .fpt-icon {
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .fpt-info-function {
+            background: #EFF6FF;
+            border: 1px solid #BFDBFE;
+            color: #1E40AF;
+        }
+
+        .fpt-info-procedure {
+            background: #ECFDF5;
+            border: 1px solid #A7F3D0;
+            color: #065F46;
+        }
+
+        .fpt-info-trigger {
+            background: #FEF2F2;
+            border: 1px solid #FECACA;
+            color: #991B1B;
+        }
+
+        /* Cards */
+        .card-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 22px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0,0,0,0.06);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+            border: 1px solid #E5E7EB;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        .card h3 { color: var(--text-dark); margin-bottom: 5px; font-size: 1.1rem; }
+        .card .category { color: #6B7280; font-size: 0.85rem; margin-bottom: 8px; }
+        .card .price { color: var(--accent); font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; }
+        .card .rating { color: var(--warning); margin-bottom: 5px; font-weight: 600; font-size: 0.95rem; }
+        .card .stock-info { font-size: 0.82rem; margin-bottom: 15px; padding: 4px 8px; border-radius: 6px; display: inline-block; }
+        .stock-in { background: #D1FAE5; color: #065F46; }
+        .stock-low { background: #FEF3C7; color: #92400E; }
+        .stock-out { background: #FEE2E2; color: #991B1B; }
+
+        /* Buttons */
+        .btn {
+            background-color: var(--secondary);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .btn:hover { background-color: #2563EB; transform: translateY(-1px); }
+        .btn:active { transform: translateY(0); }
+        .btn-accent { background: linear-gradient(135deg, var(--accent), #059669); }
+        .btn-accent:hover { background: linear-gradient(135deg, #059669, #047857); }
+        .btn-outline { background-color: transparent; border: 2px solid #D1D5DB; color: var(--text-dark); }
+        .btn-outline:hover { background-color: #F3F4F6; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* Cart Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.04);
+            margin-bottom: 20px;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #E5E7EB;
+            vertical-align: middle;
+        }
+
+        th { background: linear-gradient(135deg, var(--primary), #2563eb); color: white; font-weight: 600; }
+
+        .qty-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .qty-btn {
+            background: #E5E7EB;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .qty-btn:hover { background: #D1D5DB; }
+
+        .cart-summary {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            text-align: right;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.04);
+            border: 1px solid #E5E7EB;
+        }
+
+        /* Order History */
+        .order-card {
+            background: white;
+            padding: 22px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.04);
+            border-left: 4px solid var(--secondary);
+            transition: all 0.2s;
+        }
+
+        .order-card:hover {
+            box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #E5E7EB;
+            padding-bottom: 10px;
+        }
+
+        .status-badge {
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-transform: capitalize;
+        }
+
+        .status-delivered { background: #D1FAE5; color: #065F46; }
+        .status-pending { background: #FEF3C7; color: #92400E; }
+        .status-shipped { background: #DBEAFE; color: #1E40AF; }
+        .status-cancelled { background: #FEE2E2; color: #991B1B; }
+
+        .review-section {
+            margin-top: 15px;
+            background: #F9FAFB;
+            padding: 16px;
+            border-radius: 10px;
+            border: 1px solid #E5E7EB;
+        }
+
+        .review-section input, .review-section select {
+            padding: 9px 12px;
+            border: 1px solid #D1D5DB;
+            border-radius: 8px;
+            margin-right: 10px;
+            font-size: 0.9rem;
+        }
+
+        /* Loyalty Banner */
+        .loyalty-banner {
+            background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+            color: white;
+            padding: 18px 24px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .loyalty-banner .discount-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        /* Account Form */
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #E5E7EB;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+            background: #F9FAFB;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 4px rgba(59,130,246,0.1);
+            background: #fff;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.9rem;
+        }
+
+        /* Loading spinner */
+        .loading-container {
+            text-align: center;
+            padding: 60px;
+            color: #6B7280;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #E5E7EB;
+            border-top-color: var(--secondary);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px;
+            color: #9CA3AF;
+        }
+
+        .empty-state .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        /* Payment Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: white;
+            padding: 35px;
+            border-radius: 16px;
+            width: 460px;
+            max-width: 90%;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .payment-methods {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 18px 0;
+        }
+
+        .payment-option {
+            padding: 14px;
+            border: 2px solid #E5E7EB;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #F9FAFB;
+        }
+
+        .payment-option:hover {
+            border-color: var(--secondary);
+            background: #EFF6FF;
+        }
+
+        .payment-option.selected {
+            border-color: var(--primary);
+            background: #EFF6FF;
+            box-shadow: 0 0 0 3px rgba(30,58,138,0.1);
+        }
+
+        .payment-option .pay-icon {
+            font-size: 1.6rem;
+            margin-bottom: 4px;
+        }
+
+        .payment-option .pay-label {
+            font-weight: 600;
+            font-size: 0.88rem;
+            color: var(--text-dark);
+        }
+
+        .payment-success-banner {
+            background: #ECFDF5;
+            border: 1px solid #A7F3D0;
+            color: #065F46;
+            padding: 14px 18px;
+            border-radius: 10px;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>LogiChain</h2>
+        </div>
+        <div class="user-info">
+            <div class="user-name" id="sidebar-username">Customer</div>
+            <div class="user-role">Customer Account</div>
+        </div>
+        <button class="nav-btn active" onclick="showPage('page-market', this)">
+            <span><span class="nav-icon">🛍️</span> Marketplace</span>
+        </button>
+        <button class="nav-btn" onclick="showPage('page-cart', this)">
+            <span><span class="nav-icon">🛒</span> My Cart</span>
+            <span class="cart-badge" id="cart-counter">0</span>
+        </button>
+        <button class="nav-btn" onclick="showPage('page-orders', this)">
+            <span><span class="nav-icon">📦</span> Order History</span>
+        </button>
+        <button class="nav-btn" onclick="showPage('page-account', this)">
+            <span><span class="nav-icon">👤</span> My Account</span>
+        </button>
+        <button class="nav-btn logout-btn" onclick="logout()">
+            <span><span class="nav-icon">🚪</span> Logout</span>
+        </button>
+    </div>
+
+    <div class="main-content">
+
+        <!-- MARKETPLACE PAGE -->
+        <section id="page-market" class="page active">
+            <h1>Marketplace</h1>
+            <p class="page-desc">
+                Browse available logistics equipment and materials from our distributors.
+                <span class="fpt-badge fpt-function">⚡ FN: get_avg_rating()</span>
+            </p>
+
+            <div class="fpt-info-box fpt-info-function">
+                <span class="fpt-icon">📘</span>
+                <div>
+                    <strong>SQL Function: get_avg_rating(product_id)</strong><br>
+                    Each product's star rating below is fetched live from the database using this function. It calculates the average of all customer reviews for that product from the <code>review</code> table.
+                </div>
+            </div>
+
+            <div class="card-container" id="catalog-container">
+                <div class="loading-container">
+                    <div class="loading-spinner"></div>
+                    <p>Loading products...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- CART PAGE -->
+        <section id="page-cart" class="page">
+            <h1>Shopping Cart</h1>
+            <p class="page-desc">
+                Review your items before checkout.
+                <span class="fpt-badge fpt-procedure">⚙️ PROC: process_order()</span>
+                <span class="fpt-badge fpt-function">⚡ FN: calculate_loyalty_discount()</span>
+            </p>
+
+            <div class="fpt-info-box fpt-info-procedure">
+                <span class="fpt-icon">📗</span>
+                <div>
+                    <strong>SQL Procedure: process_order(customer_id)</strong><br>
+                    Clicking "Place Order" calls this stored procedure which: (1) calculates total from cart, (2) inserts into <code>orders</code> and <code>order_item</code>, (3) deducts inventory (which may fire the <code>check_min_stock</code> trigger), (4) clears the cart.
+                </div>
+            </div>
+
+            <div class="fpt-info-box fpt-info-function">
+                <span class="fpt-icon">📘</span>
+                <div>
+                    <strong>SQL Function: calculate_loyalty_discount(customer_id)</strong><br>
+                    Your loyalty discount is calculated based on total lifetime spending on delivered orders. Spend ₹10,000+ for 5% off, or ₹50,000+ for 10% off.
+                </div>
+            </div>
+
+            <!-- Loyalty discount banner (loaded dynamically) -->
+            <div id="loyalty-banner-container"></div>
+
+            <!-- Trigger error alert (shown when check_min_stock fires) -->
+            <div id="trigger-alert" class="fpt-info-box fpt-info-trigger" style="display: none;">
+                <span class="fpt-icon">⚠️</span>
+                <div>
+                    <strong>TRIGGER FIRED: check_min_stock</strong><br>
+                    <span id="trigger-alert-msg"></span>
+                </div>
+            </div>
+            
+            <div id="empty-cart-msg" style="display: none;">
+                <div class="empty-state">
+                    <div class="empty-icon">🛒</div>
+                    <h3>Your cart is empty</h3>
+                    <p style="margin-bottom: 15px;">Browse the marketplace to add products</p>
+                    <button class="btn" onclick="document.querySelectorAll('.nav-btn')[0].click()">Go to Marketplace</button>
+                </div>
+            </div>
+
+            <div id="cart-content">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Price</th>
+                            <th>Quantity</th>
+                            <th>Total</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cart-table-body">
+                    </tbody>
+                </table>
+                
+                <div class="cart-summary">
+                    <div style="margin-bottom: 5px; color: #6B7280; font-size: 0.9rem;">
+                        Discount: <span id="discount-display" style="font-weight: 600;">0%</span>
+                    </div>
+                    <h2 style="margin-bottom: 15px; color: var(--text-dark);">Total: <span id="cart-total" style="color: var(--primary);">₹0.00</span></h2>
+                    <button class="btn btn-accent" style="font-size: 1.05rem; padding: 13px 30px;" onclick="placeOrder()" id="place-order-btn">
+                        ⚙️ Place Order (via process_order)
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ORDER HISTORY PAGE -->
+        <section id="page-orders" class="page">
+            <h1>Order History</h1>
+            <p class="page-desc">Track your current shipments and review past deliveries.</p>
+
+            <div id="orders-container">
+                <div class="loading-container">
+                    <div class="loading-spinner"></div>
+                    <p>Loading orders...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ACCOUNT PAGE -->
+        <section id="page-account" class="page">
+            <h1>My Account</h1>
+            <p class="page-desc">Manage your personal information and delivery address.</p>
+
+            <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.04); max-width: 650px; border: 1px solid #E5E7EB;">
+                
+                <h3 style="color: var(--primary); border-bottom: 1px solid #E5E7EB; padding-bottom: 10px; margin-bottom: 20px;">Personal Details (Users Table)</h3>
+                
+                <div style="margin-bottom: 15px;">
+                    <label class="form-label">Email Address (Cannot be changed)</label>
+                    <input type="email" id="acc-email" class="form-input" disabled style="background-color: #F3F4F6; cursor: not-allowed; color: #6B7280;">
+                </div>
+
+                <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                    <div style="flex: 1;">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" id="acc-name" class="form-input">
+                    </div>
+                    <div style="flex: 1;">
+                        <label class="form-label">Phone Number</label>
+                        <input type="tel" id="acc-phone" class="form-input">
+                    </div>
+                </div>
+
+                <h3 style="color: var(--primary); border-bottom: 1px solid #E5E7EB; padding-bottom: 10px; margin-bottom: 20px; margin-top: 30px;">Delivery Details (Customer Table)</h3>
+
+                <div style="margin-bottom: 15px;">
+                    <label class="form-label">Street Address</label>
+                    <textarea id="acc-address" class="form-input" rows="3" style="resize: vertical;"></textarea>
+                </div>
+
+                <div style="display: flex; gap: 15px; margin-bottom: 25px;">
+                    <div style="flex: 1;">
+                        <label class="form-label">City</label>
+                        <input type="text" id="acc-city" class="form-input">
+                    </div>
+                    <div style="flex: 1;">
+                        <label class="form-label">State</label>
+                        <input type="text" id="acc-state" class="form-input">
+                    </div>
+                    <div style="flex: 1;">
+                        <label class="form-label">Pincode</label>
+                        <input type="text" id="acc-pincode" class="form-input">
+                    </div>
+                </div>
+
+                <button class="btn btn-accent" onclick="saveAccountDetails()" style="width: 100%; padding: 13px; font-size: 1rem;">Save Changes</button>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- PAYMENT MODAL -->
+    <div id="paymentModal" class="modal-overlay">
+        <div class="modal">
+            <h3 style="color: var(--primary); margin-bottom: 5px;">💳 Complete Payment</h3>
+            <p style="color: #6B7280; font-size: 0.9rem; margin-bottom: 15px;">Choose your payment method to place your order.</p>
+
+            <div class="fpt-info-box fpt-info-trigger" style="margin-bottom: 15px; padding: 10px 14px;">
+                <span class="fpt-icon">📕</span>
+                <div style="font-size: 0.82rem;">
+                    <strong>Order Processing & Payment</strong><br>
+                    Clicking "Pay Now" will first run <code>process_order()</code>, then fire <code>trigger_log_sales</code> on payment success.
+                </div>
+            </div>
+
+            <div style="background: #F9FAFB; padding: 16px; border-radius: 10px; border: 1px solid #E5E7EB; margin-bottom: 15px; text-align: center;">
+                <div style="color: #6B7280; font-size: 0.85rem;">Amount to Pay</div>
+                <div id="payment-amount" style="font-size: 1.8rem; font-weight: 700; color: var(--primary);">₹0.00</div>
+            </div>
+
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 0.9rem; color: #374151;">Select Payment Method</label>
+            <div class="payment-methods">
+                <div class="payment-option" onclick="selectPaymentMethod('upi', this)">
+                    <div class="pay-icon">📱</div>
+                    <div class="pay-label">UPI</div>
+                </div>
+                <div class="payment-option" onclick="selectPaymentMethod('card', this)">
+                    <div class="pay-icon">💳</div>
+                    <div class="pay-label">Card</div>
+                </div>
+                <div class="payment-option" onclick="selectPaymentMethod('netbanking', this)">
+                    <div class="pay-icon">🏦</div>
+                    <div class="pay-label">Net Banking</div>
+                </div>
+                <div class="payment-option" onclick="selectPaymentMethod('cod', this)">
+                    <div class="pay-icon">💵</div>
+                    <div class="pay-label">Cash on Delivery</div>
+                </div>
+            </div>
+
+            <div id="payment-success-msg" class="payment-success-banner">
+                ✅ <strong>Payment Successful!</strong> TRIGGER <code>trigger_log_sales</code> has fired — sales records logged to <code>sales_history</code>.
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 18px;">
+                <button class="btn" style="background-color: #9CA3AF; flex: 1;" onclick="closePaymentModal()">Cancel</button>
+                <button class="btn btn-accent" style="flex: 2; padding: 13px;" onclick="submitPayment()" id="pay-now-btn">💰 Pay Now</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // ============================================
+    // 1. AUTH & CONFIG
+    // ============================================
+    const userData = JSON.parse(sessionStorage.getItem('logichain_user') || 'null');
+    if (!userData || userData.role !== 'customer') {
+        window.location.href = 'login.html';
+    }
+
+    const USER_ID = userData.user_id;
+    const CUSTOMER_ID = userData.role_id;
+    const API_BASE = "http://localhost:3000/api"; 
+
+    document.getElementById('sidebar-username').textContent = userData.full_name;
+
+    // ============================================
+    // 2. NAVIGATION (Switching Sections)
+    // ============================================
+    function showPage(pageId, btnElement) {
+        // Hide all sections
+        document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+        document.querySelectorAll('.nav-btn:not(.logout-btn)').forEach(btn => btn.classList.remove('active'));
+        
+        // Show selected section
+        document.getElementById(pageId).classList.add('active');
+        if (btnElement) btnElement.classList.add('active');
+
+        // Refresh data for the specific section
+        if (pageId === 'page-market') loadProducts();
+        if (pageId === 'page-cart') { loadCart(); loadLoyaltyDiscount(); }
+        if (pageId === 'page-orders') loadOrders();
+        if (pageId === 'page-account') loadAccount();
+    }
+
+    function logout() {
+        sessionStorage.removeItem('logichain_user');
+        window.location.href = 'login.html';
+    }
+
+    // ============================================
+    // 3. MARKETPLACE (Product & Cart Actions)
+    // ============================================
+    async function loadProducts() {
+        const container = document.getElementById('catalog-container');
+        try {
+            const res = await fetch(`${API_BASE}/products`);
+            const products = await res.json();
+            container.innerHTML = '';
+            products.forEach(p => {
+                const rating = parseFloat(p.avg_rating) || 0;
+                container.innerHTML += `
+                    <div class="card">
+                        <h3>${p.product_name}</h3>
+                        <div class="category">${p.category}</div>
+                        <div class="rating">⭐ ${rating.toFixed(1)}/5</div>
+                        <div class="price">₹${parseFloat(p.price).toLocaleString('en-IN')}</div>
+                        <button class="btn" onclick="addToCart(${p.product_id})">Add to Cart</button>
+                    </div>`;
+            });
+        } catch (err) { container.innerHTML = '<p>Error loading products.</p>'; }
+    }
+
+    async function addToCart(productId) {
+        try {
+            await fetch(`${API_BASE}/cart`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ customer_id: CUSTOMER_ID, product_id: productId, quantity: 1 })
+            });
+            alert('Added to cart!');
+            loadCartBadge();
+        } catch (err) { alert('Cart error: ' + err.message); }
+    }
+
+    // ============================================
+    // 4. SHOPPING CART (Qty & Place Order)
+    // ============================================
+    async function loadCart() {
+        const tbody = document.getElementById('cart-table-body');
+        const totalDisplay = document.getElementById('cart-total');
+        try {
+            const res = await fetch(`${API_BASE}/cart/${CUSTOMER_ID}`);
+            const items = await res.json();
+            tbody.innerHTML = '';
+            let grandTotal = 0;
+
+            if (items.length === 0) {
+                document.getElementById('cart-content').style.display = 'none';
+                document.getElementById('empty-cart-msg').style.display = 'block';
+                return;
+            }
+
+            document.getElementById('cart-content').style.display = 'block';
+            document.getElementById('empty-cart-msg').style.display = 'none';
+
+            items.forEach(item => {
+                const itemTotal = item.price * item.quantity;
+                grandTotal += itemTotal;
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${item.product_name}</strong></td>
+                        <td>₹${item.price}</td>
+                        <td>
+                            <div class="qty-controls">
+                                <button class="qty-btn" onclick="updateCartQty(${item.product_id}, ${item.quantity - 1})">−</button>
+                                <span>${item.quantity}</span>
+                                <button class="qty-btn" onclick="updateCartQty(${item.product_id}, ${item.quantity + 1})">+</button>
+                            </div>
+                        </td>
+                        <td>₹${itemTotal.toLocaleString('en-IN')}</td>
+                        <td><button class="btn" style="background:var(--danger)" onclick="updateCartQty(${item.product_id}, 0)">Remove</button></td>
+                    </tr>`;
+            });
+            totalDisplay.textContent = `₹${grandTotal.toLocaleString('en-IN')}`;
+        } catch (err) { console.error(err); }
+    }
+
+    async function updateCartQty(productId, newQty) {
+        try {
+            await fetch(`${API_BASE}/cart`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ customer_id: CUSTOMER_ID, product_id: productId, quantity: newQty })
+            });
+            loadCart();
+        } catch (err) { alert(err.message); }
+    }
+
+    let selectedPayMethod = '';
+
+    function placeOrder() {
+        const totalText = document.getElementById('cart-total').textContent;
+        // Don't open if cart is empty (₹0.00)
+        if (totalText === '₹0.00') {
+            alert('Your cart is empty.');
+            return;
+        }
+        
+        // Setup and show payment modal
+        document.getElementById('payment-amount').textContent = totalText;
+        document.getElementById('payment-success-msg').style.display = 'none';
+        
+        const btn = document.getElementById('pay-now-btn');
+        btn.disabled = false;
+        btn.textContent = '💰 Pay Now';
+        
+        selectedPayMethod = '';
+        document.querySelectorAll('.payment-option').forEach(o => o.classList.remove('selected'));
+        
+        // Show modal
+        document.getElementById('paymentModal').style.display = 'flex';
+    }
+
+    function selectPaymentMethod(method, el) {
+        selectedPayMethod = method;
+        document.querySelectorAll('.payment-option').forEach(o => o.classList.remove('selected'));
+        el.classList.add('selected');
+    }
+
+    function closePaymentModal() {
+        document.getElementById('paymentModal').style.display = 'none';
+        loadCartBadge();
+    }
+
+    async function submitPayment() {
+        if (!selectedPayMethod) {
+            alert('Please select a payment method.');
+            return;
+        }
+        const btn = document.getElementById('pay-now-btn');
+        btn.disabled = true;
+        btn.textContent = '⏳ Creating Order...';
+        
+        try {
+            // STEP 1: Process the order (calls DB procedure, deducts stock, creates order)
+            const orderRes = await fetch(`${API_BASE}/process-order/${CUSTOMER_ID}`, { method: 'POST' });
+            const orderData = await orderRes.json();
+            
+            if (!orderRes.ok) {
+                // Show trigger alert if check_min_stock fired
+                if (orderData.error.includes('min_stock') || orderData.error.includes('stock_quantity')) {
+                    document.getElementById('trigger-alert').style.display = 'flex';
+                    document.getElementById('trigger-alert-msg').textContent = orderData.error;
+                    closePaymentModal();
+                }
+                throw new Error(orderData.error);
+            }
+            
+            const newOrderId = orderData.order_id;
+            
+            // STEP 2: Process payment for the newly created order
+            btn.textContent = '⏳ Processing Payment...';
+            const payRes = await fetch(`${API_BASE}/payment/${newOrderId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ payment_method: selectedPayMethod, payment_status: 'completed' })
+            });
+            const payData = await payRes.json();
+            
+            if (!payRes.ok) throw new Error(payData.error);
+            
+            // Show trigger success message
+            document.getElementById('payment-success-msg').style.display = 'block';
+            btn.textContent = '✅ Paid & Placed!';
+            
+            // Auto-close and navigate after 2 seconds
+            setTimeout(() => {
+                closePaymentModal();
+                showPage('page-orders', document.querySelectorAll('.nav-btn')[2]);
+            }, 2000);
+            
+        } catch (err) {
+            alert('Checkout Failed: ' + err.message);
+            btn.disabled = false;
+            btn.textContent = '💰 Pay Now';
+        }
+    }
+
+    // ============================================
+    // 5. ORDER HISTORY & REVIEWS
+    // ============================================
+    async function loadOrders() {
+        const container = document.getElementById('orders-container');
+        try {
+            const res = await fetch(`${API_BASE}/orders/${CUSTOMER_ID}`);
+            const orders = await res.json();
+            container.innerHTML = '';
+            orders.forEach(order => {
+                let reviewHTML = '';
+                if (order.status === 'delivered') {
+                    reviewHTML = `
+                        <div class="review-section">
+                            <input type="text" id="rev-${order.order_id}" placeholder="Your feedback...">
+                            <select id="rate-${order.order_id}">
+                                <option value="5">5 Stars</option>
+                                <option value="4">4 Stars</option>
+                                <option value="3">3 Stars</option>
+                                <option value="2">2 Stars</option>
+                                <option value="1">1 Star</option>
+                            </select>
+                            <button class="btn btn-accent" onclick="submitReview(${order.order_id}, ${order.items[0].product_id})">Submit Review</button>
+                        </div>`;
+                }
+                container.innerHTML += `
+                    <div class="order-card">
+                        <h3>Order #${order.order_id} - <span class="status-badge">${order.status}</span></h3>
+                        <p>Total: ₹${parseFloat(order.total_amount).toLocaleString('en-IN')}</p>
+                        ${reviewHTML}
+                    </div>`;
+            });
+        } catch (err) { container.innerHTML = '<p>Error loading orders.</p>'; }
+    }
+
+    async function submitReview(orderId, productId) {
+        const comment = document.getElementById(`rev-${orderId}`).value;
+        const rating = document.getElementById(`rate-${orderId}`).value;
+        try {
+            const res = await fetch(`${API_BASE}/review`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ customer_id: CUSTOMER_ID, product_id: productId, rating, comment })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            alert('✅ Review submitted!');
+            loadOrders();
+        } catch (err) { alert('Review Error: ' + err.message); }
+    }
+
+    // ============================================
+    // 6. ACCOUNT MANAGEMENT (Personal & Delivery)
+    // ============================================
+    async function loadAccount() {
+        try {
+            const res = await fetch(`${API_BASE}/account/${USER_ID}`);
+            const data = await res.json();
+            
+            // Map data to HTML Input IDs from your original file
+            document.getElementById('acc-email').value = data.email || '';
+            document.getElementById('acc-name').value = data.full_name || '';
+            document.getElementById('acc-phone').value = data.phone || '';
+            document.getElementById('acc-address').value = data.address || '';
+            document.getElementById('acc-city').value = data.city || '';
+            document.getElementById('acc-state').value = data.state || '';
+            document.getElementById('acc-pincode').value = data.pincode || '';
+        } catch (err) { console.error('Account detail error:', err); }
+    }
+
+    async function saveAccountDetails() {
+        try {
+            const res = await fetch(`${API_BASE}/account/${USER_ID}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    full_name: document.getElementById('acc-name').value,
+                    phone: document.getElementById('acc-phone').value,
+                    address: document.getElementById('acc-address').value,
+                    city: document.getElementById('acc-city').value,
+                    state: document.getElementById('acc-state').value,
+                    pincode: document.getElementById('acc-pincode').value
+                })
+            });
+            if (res.ok) alert('✅ Account updated!');
+        } catch (err) { alert(err.message); }
+    }
+
+    // ============================================
+    // 7. CART BADGE & LOYALTY DISCOUNT
+    // ============================================
+    async function loadCartBadge() {
+        try {
+            const res = await fetch(`${API_BASE}/cart-count/${CUSTOMER_ID}`);
+            const data = await res.json();
+            const badge = document.getElementById('cart-counter');
+            if (data.count > 0) {
+                badge.textContent = data.count;
+                badge.style.display = 'inline';
+            } else {
+                badge.style.display = 'none';
+            }
+        } catch (err) { console.error('Badge error:', err); }
+    }
+
+    async function loadLoyaltyDiscount() {
+        try {
+            const res = await fetch(`${API_BASE}/loyalty-discount/${CUSTOMER_ID}`);
+            const data = await res.json();
+            const container = document.getElementById('loyalty-banner-container');
+            const discountDisplay = document.getElementById('discount-display');
+            
+            if (data.discount > 0) {
+                container.innerHTML = `
+                    <div class="loyalty-banner">
+                        <div>
+                            <strong>🎉 Loyalty Discount Active!</strong><br>
+                            <span style="font-size: 0.9rem; opacity: 0.9;">Based on your lifetime spending on delivered orders.</span>
+                        </div>
+                        <div class="discount-value">${data.discount}% OFF</div>
+                    </div>`;
+                discountDisplay.textContent = data.discount + '%';
+                
+                // Recalculate total with discount
+                const totalEl = document.getElementById('cart-total');
+                const currentTotal = parseFloat(totalEl.textContent.replace(/[₹,]/g, ''));
+                if (currentTotal > 0) {
+                    const discounted = currentTotal * (1 - data.discount / 100);
+                    totalEl.textContent = '₹' + discounted.toLocaleString('en-IN', {minimumFractionDigits: 2});
+                }
+            } else {
+                container.innerHTML = '';
+                discountDisplay.textContent = '0%';
+            }
+        } catch (err) { console.error('Loyalty error:', err); }
+    }
+
+    // Initialize Marketplace on load
+    window.onload = () => { loadProducts(); loadCartBadge(); };
+</script>
+</body>
+</html>

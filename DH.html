@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        // Early auth check to prevent page flash
+        const preLoadData = JSON.parse(sessionStorage.getItem('logichain_user') || 'null');
+        if (!preLoadData || preLoadData.role !== 'distributor') {
+            window.location.href = 'login.html';
+        }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distributor Portal | LogiChain</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1E3A8A; 
+            --secondary: #3B82F6; 
+            --accent: #10B981; 
+            --danger: #EF4444; 
+            --warning: #F59E0B;
+            --bg-light: #F3F4F6;
+            --text-dark: #1F2937;
+            --card-bg: #FFFFFF;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: linear-gradient(180deg, #0f172a 0%, #1e3a5f 100%);
+            color: white;
+            padding: 25px 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            text-align: center;
+            margin-bottom: 10px;
+            padding: 0 20px;
+        }
+
+        .sidebar-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .user-info {
+            text-align: center;
+            padding: 15px 20px;
+            margin: 0 15px 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .user-info .user-name {
+            font-weight: 600;
+            font-size: 1rem;
+            color: #fff;
+        }
+
+        .user-info .user-role {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-top: 3px;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            padding: 14px 24px;
+            text-align: left;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+            display: flex;
+            align-items: center;
+            font-weight: 500;
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            background: rgba(59, 130, 246, 0.1);
+            color: white;
+            border-left: 3px solid var(--accent);
+        }
+
+        .nav-btn .nav-icon {
+            margin-right: 10px;
+            font-size: 1.1rem;
+        }
+
+        .nav-btn.logout-btn {
+            margin-top: auto;
+            color: #ef4444;
+            border-left: none;
+        }
+
+        .nav-btn.logout-btn:hover {
+            background: rgba(239, 68, 68, 0.1);
+            border-left: none;
+        }
+
+        /* Main content */
+        .main-content {
+            flex: 1;
+            padding: 35px 40px;
+            overflow-y: auto;
+            margin-left: 260px;
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            margin-bottom: 5px;
+            color: var(--primary);
+            font-size: 1.8rem;
+        }
+
+        .page-desc {
+            margin-bottom: 25px;
+            color: #6B7280;
+            border-bottom: 2px solid #E5E7EB;
+            padding-bottom: 15px;
+            font-size: 0.95rem;
+        }
+
+        /* FPT Badges */
+        .fpt-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .fpt-function { background: #DBEAFE; color: #1E40AF; border: 1px solid #93C5FD; }
+        .fpt-procedure { background: #D1FAE5; color: #065F46; border: 1px solid #6EE7B7; }
+        .fpt-trigger { background: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; }
+
+        .fpt-info-box {
+            padding: 14px 18px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .fpt-icon { font-size: 1.3rem; flex-shrink: 0; }
+        .fpt-info-function { background: #EFF6FF; border: 1px solid #BFDBFE; color: #1E40AF; }
+        .fpt-info-procedure { background: #ECFDF5; border: 1px solid #A7F3D0; color: #065F46; }
+        .fpt-info-trigger { background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; }
+
+        /* Stats Cards */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 18px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 22px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.04);
+            border: 1px solid #E5E7EB;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+        }
+
+        .stat-card .stat-label {
+            color: #6B7280;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .stat-card .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-border-blue { border-left: 4px solid var(--primary); }
+        .stat-border-green { border-left: 4px solid var(--accent); }
+        .stat-border-red { border-left: 4px solid var(--danger); }
+        .stat-border-yellow { border-left: 4px solid var(--warning); }
+
+        /* Buttons */
+        .btn {
+            background-color: var(--secondary);
+            color: white;
+            border: none;
+            padding: 9px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            font-size: 0.88rem;
+        }
+
+        .btn:hover { background-color: #2563EB; transform: translateY(-1px); }
+        .btn:active { transform: translateY(0); }
+        .btn-accent { background: linear-gradient(135deg, var(--accent), #059669); }
+        .btn-accent:hover { background: linear-gradient(135deg, #059669, #047857); }
+        .btn-danger { background: var(--danger); }
+        .btn-danger:hover { background: #DC2626; }
+        .btn-warning { background: var(--warning); color: #fff; }
+        .btn-warning:hover { background: #D97706; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.04);
+            margin-top: 12px;
+        }
+
+        th, td {
+            padding: 13px 15px;
+            text-align: left;
+            border-bottom: 1px solid #E5E7EB;
+        }
+
+        th {
+            background: linear-gradient(135deg, var(--primary), #2563eb);
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        /* Form panels */
+        .form-panel {
+            background: white;
+            padding: 22px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.04);
+            margin-bottom: 25px;
+            border-left: 4px solid var(--secondary);
+            border: 1px solid #E5E7EB;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            flex: 1;
+            margin-bottom: 10px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 0.88rem;
+            color: #374151;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #E5E7EB;
+            border-radius: 8px;
+            font-size: 0.92rem;
+            transition: all 0.3s;
+            background: #F9FAFB;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+            background: #fff;
+        }
+
+        select.status-dropdown {
+            padding: 7px 10px;
+            border-radius: 6px;
+            border: 2px solid #E5E7EB;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        /* Modals */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: white;
+            padding: 30px;
+            border-radius: 14px;
+            width: 430px;
+            max-width: 90%;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+            animation: fadeIn 0.3s ease;
+        }
+
+        /* Sales report panel */
+        .sales-report-panel {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.04);
+            border: 1px solid #E5E7EB;
+            margin-top: 20px;
+        }
+
+        .sales-result {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .sales-result-card {
+            background: #F9FAFB;
+            padding: 18px;
+            border-radius: 10px;
+            border: 1px solid #E5E7EB;
+            text-align: center;
+        }
+
+        .sales-result-card .result-label {
+            font-size: 0.82rem;
+            color: #6B7280;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .sales-result-card .result-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        /* Loading */
+        .loading-container {
+            text-align: center;
+            padding: 50px;
+            color: #6B7280;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #E5E7EB;
+            border-top-color: var(--secondary);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #9CA3AF;
+        }
+
+        .empty-state .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        /* Account form */
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #E5E7EB;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+            background: #F9FAFB;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 4px rgba(59,130,246,0.1);
+            background: #fff;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.9rem;
+        }
+
+        .trigger-alert-live {
+            display: none;
+            background: #FEF2F2;
+            border: 1px solid #FECACA;
+            color: #991B1B;
+            padding: 14px 18px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            align-items: flex-start;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>LogiChain</h2>
+        </div>
+        <div class="user-info">
+            <div class="user-name" id="sidebar-username">Distributor</div>
+            <div class="user-role">Distributor Account</div>
+        </div>
+        <button class="nav-btn active" onclick="showPage('page-dashboard', this)">
+            <span class="nav-icon">📊</span> Dashboard
+        </button>
+        <button class="nav-btn" onclick="showPage('page-inventory', this)">
+            <span class="nav-icon">📦</span> Manage Inventory
+        </button>
+        <button class="nav-btn" onclick="showPage('page-orders', this)">
+            <span class="nav-icon">🚚</span> Manage Orders
+        </button>
+        <button class="nav-btn" onclick="showPage('page-sales', this)">
+            <span class="nav-icon">📈</span> Sales Report
+        </button>
+        <button class="nav-btn" onclick="showPage('page-account', this)">
+            <span class="nav-icon">👤</span> My Account
+        </button>
+        <button class="nav-btn logout-btn" onclick="logout()">
+            <span class="nav-icon">🚪</span> Logout
+        </button>
+    </div>
+
+    <div class="main-content">
+
+        <!-- DASHBOARD PAGE -->
+        <section id="page-dashboard" class="page active">
+            <h1>Dashboard Overview</h1>
+            <p class="page-desc">Welcome back! Here's a summary of your distribution business.</p>
+
+            <div class="stats-container" id="dashboard-stats">
+                <div class="stat-card stat-border-blue">
+                    <div class="stat-label">Total Products</div>
+                    <div class="stat-value" id="stat-products">--</div>
+                </div>
+                <div class="stat-card stat-border-green">
+                    <div class="stat-label">Total Revenue</div>
+                    <div class="stat-value" id="stat-revenue">--</div>
+                </div>
+                <div class="stat-card stat-border-yellow">
+                    <div class="stat-label">Pending Orders</div>
+                    <div class="stat-value" id="stat-pending">--</div>
+                </div>
+                <div class="stat-card stat-border-red">
+                    <div class="stat-label">Low Stock Alerts</div>
+                    <div class="stat-value" id="stat-lowstock">--</div>
+                </div>
+            </div>
+
+            <div style="background: white; padding: 20px; border-radius: 12px; border: 1px solid #E5E7EB;">
+                <h3 style="color: var(--primary); margin-bottom: 10px;">Quick Guide</h3>
+                <p style="color: #6B7280; line-height: 1.7;">
+                    Use <strong>Manage Inventory</strong> to add, edit, or delete your products. The <span class="fpt-badge fpt-trigger">TRIGGER: check_min_stock</span> will prevent stock from dropping below minimum levels.<br>
+                    Use <strong>Manage Orders</strong> to update order statuses and process payments. The <span class="fpt-badge fpt-trigger">TRIGGER: trigger_log_sales</span> automatically logs to sales_history when payment is completed.<br>
+                    Use <strong>Sales Report</strong> to generate date-range reports via the <span class="fpt-badge fpt-procedure">PROC: generate_sales_report()</span> procedure.
+                </p>
+            </div>
+        </section>
+
+        <!-- INVENTORY PAGE -->
+        <section id="page-inventory" class="page">
+            <h1>Manage Inventory</h1>
+            <p class="page-desc">
+                Add, edit, or remove products from your catalog.
+                <span class="fpt-badge fpt-trigger">🔒 TRIGGER: check_min_stock</span>
+            </p>
+
+            <div class="fpt-info-box fpt-info-trigger">
+                <span class="fpt-icon">⚠️</span>
+                <div>
+                    <strong>SQL Trigger: check_min_stock</strong><br>
+                    Fires BEFORE UPDATE on the <code>inventory</code> table. If the new <code>stock_quantity</code> would fall below <code>min_stock</code>, the transaction is blocked with an exception. This protects against dangerously low inventory levels.
+                </div>
+            </div>
+
+            <!-- Trigger alert (shown when check_min_stock fires) -->
+            <div class="trigger-alert-live" id="inventory-trigger-alert">
+                <span style="font-size: 1.3rem;">🚨</span>
+                <div>
+                    <strong>TRIGGER FIRED: check_min_stock</strong><br>
+                    <span id="inventory-trigger-msg"></span>
+                </div>
+            </div>
+            
+            <div class="form-panel" style="border-left: 4px solid var(--secondary);">
+                <h3 style="margin-bottom: 15px; color: var(--primary);">Add New Product</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Product Name</label>
+                        <input type="text" id="prod-name" placeholder="e.g. Forklift Oil">
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <input type="text" id="prod-cat" list="category-options" placeholder="Type or select...">
+                        <datalist id="category-options">
+                            <option value="Equipment"></option>
+                            <option value="Packaging"></option>
+                            <option value="Warehousing"></option>
+                        </datalist>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Price (₹)</label>
+                        <input type="number" id="prod-price" placeholder="0.00" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Initial Stock</label>
+                        <input type="number" id="prod-stock" placeholder="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Min Stock</label>
+                        <input type="number" id="prod-min-stock" placeholder="10" value="10">
+                    </div>
+                </div>
+                <button class="btn btn-accent" onclick="addProduct()">+ Add Product</button>
+            </div>
+
+            <h3 style="margin-bottom: 5px;">Current Products</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Product Name</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>Min Stock</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="inventory-table-body">
+                    <tr><td colspan="8"><div class="loading-container"><div class="loading-spinner"></div><p>Loading...</p></div></td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- ORDERS PAGE -->
+        <section id="page-orders" class="page">
+            <h1>Manage Orders</h1>
+            <p class="page-desc">
+                Update order fulfillment statuses. Customer pays at checkout.
+                <span class="fpt-badge fpt-trigger">🔔 TRIGGER: trigger_log_sales</span>
+            </p>
+
+            <div class="fpt-info-box fpt-info-trigger">
+                <span class="fpt-icon">📕</span>
+                <div>
+                    <strong>SQL Trigger: trigger_log_sales</strong><br>
+                    Fires AFTER UPDATE on the <code>payment</code> table. When <code>payment_status</code> changes to <code>'completed'</code>, it automatically loops through all <code>order_item</code> rows and inserts records into the <code>sales_history</code> table, recording each sale.
+                </div>
+            </div>
+
+            <div class="trigger-alert-live" id="payment-trigger-alert" style="background: #ECFDF5; border-color: #A7F3D0; color: #065F46;">
+                <span style="font-size: 1.3rem;">✅</span>
+                <div>
+                    <strong>Status Updated Successfully</strong><br>
+                    <span id="payment-trigger-msg">Order status has been updated.</span>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Date</th>
+                        <th>Customer</th>
+                        <th>Items</th>
+                        <th>Total</th>
+                        <th>Payment</th>
+                        <th>Update Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="orders-table-body">
+                    <tr><td colspan="8"><div class="loading-container"><div class="loading-spinner"></div><p>Loading...</p></div></td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- SALES REPORT PAGE -->
+        <section id="page-sales" class="page">
+            <h1>Sales Report</h1>
+            <p class="page-desc">
+                Generate revenue reports using the database procedure.
+                <span class="fpt-badge fpt-procedure">⚙️ PROC: generate_sales_report()</span>
+            </p>
+
+            <div class="fpt-info-box fpt-info-procedure">
+                <span class="fpt-icon">📗</span>
+                <div>
+                    <strong>SQL Procedure: generate_sales_report(start_date, end_date)</strong><br>
+                    This stored procedure calculates: (1) total revenue from <code>sales_history</code> in the given date range, (2) identifies the top-selling product by quantity. It returns <code>p_total_revenue</code>, <code>p_top_product_name</code>, and <code>p_top_qty_sold</code>.
+                </div>
+            </div>
+
+            <div class="sales-report-panel">
+                <h3 style="color: var(--primary); margin-bottom: 15px;">Generate Report</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Start Date</label>
+                        <input type="date" id="report-start">
+                    </div>
+                    <div class="form-group">
+                        <label>End Date</label>
+                        <input type="date" id="report-end">
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: flex-end;">
+                        <button class="btn btn-accent" onclick="generateSalesReport()" id="generate-report-btn" style="width: 100%; padding: 10px;">
+                            ⚙️ Run generate_sales_report()
+                        </button>
+                    </div>
+                </div>
+
+                <div id="sales-results" style="display: none;">
+                    <h4 style="margin-bottom: 10px; color: #374151;">Results from generate_sales_report()</h4>
+                    <div class="sales-result">
+                        <div class="sales-result-card">
+                            <div class="result-label">Total Revenue (p_total_revenue)</div>
+                            <div class="result-value" id="report-revenue">₹0.00</div>
+                        </div>
+                        <div class="sales-result-card">
+                            <div class="result-label">Top Product (p_top_product_name)</div>
+                            <div class="result-value" id="report-top-product" style="font-size: 1.1rem;">—</div>
+                        </div>
+                        <div class="sales-result-card">
+                            <div class="result-label">Top Qty Sold (p_top_qty_sold)</div>
+                            <div class="result-value" id="report-top-qty">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ACCOUNT PAGE -->
+        <section id="page-account" class="page">
+            <h1>My Account</h1>
+            <p class="page-desc">Manage your distributor profile and company details.</p>
+
+            <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.04); max-width: 650px; border: 1px solid #E5E7EB;">
+                
+                <h3 style="color: var(--primary); border-bottom: 1px solid #E5E7EB; padding-bottom: 10px; margin-bottom: 20px;">Personal Details (Users Table)</h3>
+                
+                <div style="margin-bottom: 15px;">
+                    <label class="form-label">Email Address (Cannot be changed)</label>
+                    <input type="email" id="acc-email" class="form-input" disabled style="background-color: #F3F4F6; cursor: not-allowed; color: #6B7280;">
+                </div>
+
+                <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                    <div style="flex: 1;">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" id="acc-name" class="form-input">
+                    </div>
+                    <div style="flex: 1;">
+                        <label class="form-label">Phone Number</label>
+                        <input type="tel" id="acc-phone" class="form-input">
+                    </div>
+                </div>
+
+                <h3 style="color: var(--primary); border-bottom: 1px solid #E5E7EB; padding-bottom: 10px; margin-bottom: 20px; margin-top: 30px;">Company Details (Distributor Table)</h3>
+
+                <div style="margin-bottom: 15px;">
+                    <label class="form-label">Company Name</label>
+                    <input type="text" id="acc-company" class="form-input">
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <label class="form-label">Warehouse Location</label>
+                    <textarea id="acc-warehouse" class="form-input" rows="3" style="resize: vertical;"></textarea>
+                </div>
+
+                <button class="btn btn-accent" onclick="saveAccountDetails()" style="width: 100%; padding: 13px; font-size: 1rem;">Save Changes</button>
+            </div>
+        </section>
+    </div>
+
+    <!-- EDIT MODAL -->
+    <div id="editModal" class="modal-overlay">
+        <div class="modal">
+            <h3 style="margin-bottom: 18px; color: var(--primary);">Edit Product</h3>
+            <div class="form-group">
+                <label>Product Name</label>
+                <input type="text" id="edit-name">
+            </div>
+            <div class="form-group">
+                <label>Category</label>
+                <input type="text" id="edit-cat" list="category-options">
+            </div>
+            <div class="form-group">
+                <label>Price (₹)</label>
+                <input type="number" id="edit-price" step="0.01">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Stock Quantity</label>
+                    <input type="number" id="edit-stock">
+                </div>
+                <div class="form-group">
+                    <label>Min Stock</label>
+                    <input type="number" id="edit-min-stock">
+                </div>
+            </div>
+
+            <div id="edit-trigger-alert" class="trigger-alert-live" style="margin-top: 10px;">
+                <span style="font-size: 1.2rem;">🚨</span>
+                <div>
+                    <strong>TRIGGER: check_min_stock</strong><br>
+                    <span id="edit-trigger-msg"></span>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn" style="background-color: #9CA3AF;" onclick="closeModals()">Cancel</button>
+                <button class="btn btn-accent" onclick="saveEdit()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DELETE MODAL -->
+    <div id="deleteModal" class="modal-overlay">
+        <div class="modal">
+            <h3 style="color: var(--danger); margin-bottom: 10px;">Confirm Deletion</h3>
+            <p>Are you sure you want to delete <strong id="delete-prod-name">this product</strong>?</p>
+            <p style="font-size: 0.85rem; color: #6B7280; margin-top: 5px;">This action cannot be undone. (ON DELETE CASCADE will remove inventory records)</p>
+            
+            <div style="margin-top: 25px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn" style="background-color: #9CA3AF;" onclick="closeModals()">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmDelete()">Yes, Delete</button>
+            </div>
+        </div>
+    </div>
+
+   <script>
+    // ============================================
+    // 1. AUTH & CONFIG
+    // ============================================
+    const userData = JSON.parse(sessionStorage.getItem('logichain_user') || 'null');
+    if (!userData || userData.role !== 'distributor') {
+        window.location.href = 'login.html';
+    }
+
+    const USER_ID = userData.user_id;
+    const DISTRIBUTOR_ID = userData.role_id;
+    const USER_NAME = userData.full_name;
+    const API_BASE = "http://localhost:3000/api"; //
+
+    document.getElementById('sidebar-username').textContent = USER_NAME;
+
+    let editingProductId = null;
+    let deletingProductId = null;
+
+    // ============================================
+    // 2. NAVIGATION (CRITICAL: Fixes section switching)
+    // ============================================
+    function showPage(pageId, btnElement) {
+        document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+        document.querySelectorAll('.nav-btn:not(.logout-btn)').forEach(btn => btn.classList.remove('active'));
+        
+        const targetPage = document.getElementById(pageId);
+        if (targetPage) targetPage.classList.add('active');
+        if (btnElement) btnElement.classList.add('active');
+
+        // Load data based on page
+        if (pageId === 'page-dashboard') loadDashboard();
+        if (pageId === 'page-inventory') loadInventory();
+        if (pageId === 'page-orders') loadOrders();
+        if (pageId === 'page-account') loadAccount();
+    }
+
+    function logout() {
+        sessionStorage.removeItem('logichain_user');
+        window.location.href = 'login.html';
+    }
+
+    // ============================================
+    // 3. DASHBOARD LOGIC
+    // ============================================
+    async function loadDashboard() {
+        try {
+            const res = await fetch(`${API_BASE}/distributor/dashboard/${DISTRIBUTOR_ID}`);
+            const data = await res.json();
+            document.getElementById('stat-products').textContent = data.total_products;
+            document.getElementById('stat-revenue').textContent = '₹' + parseFloat(data.total_revenue).toLocaleString('en-IN');
+            document.getElementById('stat-pending').textContent = data.pending_orders;
+            document.getElementById('stat-lowstock').textContent = data.low_stock_alerts;
+        } catch (err) { console.error('Dashboard error:', err); }
+    }
+
+    // ============================================
+    // 4. INVENTORY LOGIC (Add & Load)
+    // ============================================
+    async function loadInventory() {
+        const tbody = document.getElementById('inventory-table-body');
+        try {
+            const res = await fetch(`${API_BASE}/distributor/products/${DISTRIBUTOR_ID}`);
+            const products = await res.json();
+            tbody.innerHTML = '';
+            if (products.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8">No products found.</td></tr>';
+                return;
+            }
+            products.forEach(p => {
+                const stock = p.stock_quantity || 0;
+                const escapedName = p.product_name.replace(/'/g, "\\'");
+                const escapedCat = p.category.replace(/'/g, "\\'");
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${p.product_id}</td>
+                        <td>${p.product_name}</td>
+                        <td>${p.category}</td>
+                        <td>₹${p.price}</td>
+                        <td>${stock}</td>
+                        <td>${p.min_stock}</td>
+                        <td>${stock <= p.min_stock ? '<span style="color:red">Low</span>' : 'Healthy'}</td>
+                        <td>
+                            <button class="btn btn-warning" onclick="openEditModal(${p.product_id}, '${escapedName}', '${escapedCat}', ${p.price}, ${stock}, ${p.min_stock})">Edit</button>
+                            <button class="btn btn-danger" style="margin-left:5px;" onclick="openDeleteModal(${p.product_id}, '${escapedName}')">Delete</button>
+                        </td>
+                    </tr>`;
+            });
+        } catch (err) { tbody.innerHTML = 'Error loading inventory.'; }
+    }
+
+    async function addProduct() {
+    const name = document.getElementById('prod-name').value;
+    const cat = document.getElementById('prod-cat').value;
+    const price = document.getElementById('prod-price').value;
+    const stock = document.getElementById('prod-stock').value;
+    const minStock = document.getElementById('prod-min-stock').value;
+
+    try {
+        const res = await fetch(`${API_BASE}/products`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                product_name: name, 
+                category: cat, 
+                price: price, 
+                stock_quantity: stock, 
+                min_stock: minStock, 
+                distributor_id: DISTRIBUTOR_ID // Ensure this variable is set from sessionStorage
+            })
+        });
+        const data = await res.json();
+        if (res.ok) { 
+            alert('Product and Inventory added successfully!'); 
+            loadInventory(); 
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (err) { alert('Network error: ' + err.message); }
+}
+
+    // ============================================
+    // 5. ORDERS LOGIC (Status Management)
+    // ============================================
+    async function loadOrders() {
+        const tbody = document.getElementById('orders-table-body');
+        try {
+            const res = await fetch(`${API_BASE}/distributor/orders/${DISTRIBUTOR_ID}`);
+            const orders = await res.json();
+            tbody.innerHTML = '';
+            
+            if (orders.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8">No orders placed for your products.</td></tr>';
+                return;
+            }
+
+            orders.forEach(order => {
+                const itemsList = order.items.map(i => `${i.quantity}x ${i.product_name}`).join(', ');
+                const isPaid = order.payment_status === 'completed';
+                const isFinal = order.status === 'delivered' || order.status === 'cancelled';
+                
+                const statusOptions = ['pending', 'packed', 'shipped', 'delivered', 'cancelled'];
+                const statusDropdown = isFinal 
+                    ? `<span class="status-badge status-${order.status}">${order.status}</span>`
+                    : `<select class="status-dropdown" id="status-${order.order_id}" style="padding:7px 10px; border-radius:6px; border:2px solid #E5E7EB; font-weight:600; font-size:0.85rem;">
+                        ${statusOptions.map(s => `<option value="${s}" ${s === order.status ? 'selected' : ''}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`).join('')}
+                       </select>`;
+
+                const actionBtn = isFinal
+                    ? `<span style="color:#9CA3AF; font-size:0.85rem;">✅ Completed</span>`
+                    : `<button class="btn btn-accent" onclick="updateOrderStatus(${order.order_id})">Update</button>`;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>#${order.order_id}</td>
+                        <td>${new Date(order.order_date).toLocaleDateString()}</td>
+                        <td>${order.customer_name}</td>
+                        <td>${itemsList}</td>
+                        <td>₹${order.total_amount}</td>
+                        <td><span style="color:${isPaid ? '#065F46' : '#92400E'}; font-weight:600;">${isPaid ? '✅ Paid' : '⏳ Pending'}</span></td>
+                        <td>${statusDropdown}</td>
+                        <td>${actionBtn}</td>
+                    </tr>`;
+            });
+        } catch (err) { console.error('Orders error:', err); }
+    }
+
+    async function updateOrderStatus(orderId) {
+        const dropdown = document.getElementById(`status-${orderId}`);
+        const newStatus = dropdown.value;
+        try {
+            const res = await fetch(`${API_BASE}/orders/${orderId}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                // Show success alert
+                const alertDiv = document.getElementById('payment-trigger-alert');
+                document.getElementById('payment-trigger-msg').textContent = 
+                    `Order #${orderId} status updated to "${newStatus}" successfully.`;
+                alertDiv.style.display = 'flex';
+                setTimeout(() => { alertDiv.style.display = 'none'; }, 3000);
+                loadOrders();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (err) { alert('Error: ' + err.message); }
+    }
+
+    // ============================================
+    // 6. ACCOUNT LOGIC (Fixes missing details)
+    // ============================================
+    async function loadAccount() {
+        try {
+            const res = await fetch(`${API_BASE}/account/${USER_ID}`);
+            const data = await res.json();
+            
+            // Matches your existing HTML IDs
+            document.getElementById('acc-email').value = data.email || '';
+            document.getElementById('acc-name').value = data.full_name || '';
+            document.getElementById('acc-phone').value = data.phone || '';
+            document.getElementById('acc-company').value = data.company_name || '';
+            document.getElementById('acc-warehouse').value = data.warehouse_location || '';
+        } catch (err) { console.error('Account error:', err); }
+    }
+
+    async function saveAccountDetails() {
+        const payload = {
+            full_name: document.getElementById('acc-name').value,
+            phone: document.getElementById('acc-phone').value,
+            company_name: document.getElementById('acc-company').value,
+            warehouse_location: document.getElementById('acc-warehouse').value
+        };
+        try {
+            const res = await fetch(`${API_BASE}/account/${USER_ID}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) alert('Account Updated!');
+        } catch (err) { alert(err.message); }
+    }
+
+    // ============================================
+    // 7. MODAL & EDIT/DELETE LOGIC
+    // ============================================
+    function openEditModal(productId, name, category, price, stock, minStock) {
+        editingProductId = productId;
+        document.getElementById('edit-name').value = name;
+        document.getElementById('edit-cat').value = category;
+        document.getElementById('edit-price').value = price;
+        document.getElementById('edit-stock').value = stock;
+        document.getElementById('edit-min-stock').value = minStock;
+        document.getElementById('edit-trigger-alert').style.display = 'none';
+        document.getElementById('editModal').style.display = 'flex';
+    }
+
+    function openDeleteModal(productId, productName) {
+        deletingProductId = productId;
+        document.getElementById('delete-prod-name').textContent = productName;
+        document.getElementById('deleteModal').style.display = 'flex';
+    }
+
+    function closeModals() {
+        document.getElementById('editModal').style.display = 'none';
+        document.getElementById('deleteModal').style.display = 'none';
+    }
+
+    async function saveEdit() {
+        const payload = {
+            product_name: document.getElementById('edit-name').value,
+            category: document.getElementById('edit-cat').value,
+            price: document.getElementById('edit-price').value,
+            stock_quantity: document.getElementById('edit-stock').value,
+            min_stock: document.getElementById('edit-min-stock').value
+        };
+        try {
+            const res = await fetch(`${API_BASE}/products/${editingProductId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                // Show trigger alert if the error is from check_min_stock
+                const triggerAlert = document.getElementById('edit-trigger-alert');
+                document.getElementById('edit-trigger-msg').textContent = data.error;
+                triggerAlert.style.display = 'flex';
+                return;
+            }
+            alert('✅ Product updated!');
+            closeModals();
+            loadInventory();
+        } catch (err) { alert('Error: ' + err.message); }
+    }
+
+    async function confirmDelete() {
+        try {
+            const res = await fetch(`${API_BASE}/products/${deletingProductId}`, {
+                method: 'DELETE'
+            });
+            if (res.ok) {
+                alert('Product deleted.');
+                closeModals();
+                loadInventory();
+            } else {
+                const data = await res.json();
+                alert('Error: ' + data.error);
+            }
+        } catch (err) { alert('Error: ' + err.message); }
+    }
+
+    // ============================================
+    // 8. SALES REPORT LOGIC (Procedure call)
+    // ============================================
+    async function generateSalesReport() {
+        const startDate = document.getElementById('report-start').value;
+        const endDate = document.getElementById('report-end').value;
+        
+        if (!startDate || !endDate) {
+            alert('Please select both start and end dates.');
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_BASE}/sales-report`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    start_date: startDate + ' 00:00:00',
+                    end_date: endDate + ' 23:59:59'
+                })
+            });
+            const data = await res.json();
+            
+            if (!res.ok) throw new Error(data.error);
+
+            document.getElementById('report-revenue').textContent = '₹' + parseFloat(data.total_revenue).toLocaleString('en-IN');
+            document.getElementById('report-top-product').textContent = data.top_product_name;
+            document.getElementById('report-top-qty').textContent = data.top_qty_sold;
+            document.getElementById('sales-results').style.display = 'block';
+        } catch (err) { alert('Report error: ' + err.message); }
+    }
+
+    // Initial Load
+    window.onload = () => loadDashboard();
+</script>
+</body>
+</html>
