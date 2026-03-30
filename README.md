@@ -14,3 +14,4 @@ LogiChain is a dual-portal supply chain platform for customers and distributors.
   * `Stored Procedures` for secure checkout and reporting.
   * `Functions` for dynamic calculations like loyalty discounts and star ratings.
 * **Live Analytics:** Distributor dashboard with real-time stats and custom date-range reporting.
+  .
